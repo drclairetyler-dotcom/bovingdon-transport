@@ -442,7 +442,7 @@
   const DRIVE_TO_HEMEL = 18;   // mins from Bovingdon
   const DRIVE_TO_CHALFONT = 22; // mins from Bovingdon
   const RAIL_JOURNEY = 30;     // Hemel → Euston approx
-  const MET_JOURNEY = 55;      // Chalfont → Baker Street approx
+  const MET_JOURNEY = 60;      // Chalfont → Euston Square approx (55 min + change)
 
   const HEMEL_MAPS = "https://maps.google.com/?q=Hemel+Hempstead+Railway+Station&travelmode=driving";
   const CHALFONT_MAPS = "https://maps.google.com/?q=Chalfont+%26+Latimer+Underground+Station&travelmode=driving";
@@ -468,28 +468,34 @@
     document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     leaveInMins = parseInt(btn.dataset.val);
-    if (lastData) render(lastData);
+    // Always regenerate and re-render with new leave time
+    lastData = makeDemoData();
+    render(lastData);
   }
 
   // ── Fetch / refresh ──────────────────────────────────────────
   async function refresh() {
-    document.getElementById('spin-icon').classList.add('spinning');
-    document.getElementById('refresh-btn').disabled = true;
+    const spinEl = document.getElementById('spin-icon');
+    const btnEl = document.getElementById('refresh-btn');
+    if (spinEl) spinEl.classList.add('spinning');
+    if (btnEl) btnEl.disabled = true;
     try {
       const res = await fetch('/api/trains');
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
+      // If live data came back, merge leaveInMins into demo offsets for display
       lastData = data;
+      lastData._demo = false;
       document.getElementById('demo-notice').style.display = 'none';
-      render(data);
+      render(lastData);
     } catch(e) {
-      // Fall back to demo data
+      // Fall back to demo — always regenerate with current leaveInMins
       document.getElementById('demo-notice').style.display = 'block';
       lastData = makeDemoData();
       render(lastData);
     } finally {
-      document.getElementById('spin-icon').classList.remove('spinning');
-      document.getElementById('refresh-btn').disabled = false;
+      if (spinEl) spinEl.classList.remove('spinning');
+      if (btnEl) btnEl.disabled = false;
     }
   }
 
@@ -520,14 +526,16 @@
 
     // Next Met line departures from Chalfont (every 12 mins)
     const metBase = addM(now, leaveInMins + DRIVE_TO_CHALFONT + 2);
-    const metDests = ['Baker Street','Aldgate','Baker Street','Aldgate','Baker Street'];
+    const metDests = ['Aldgate','Aldgate','Aldgate','Aldgate','Aldgate'];
     const metDeps = [0, 12, 24, 36, 48].map((offset, i) => {
       const dep = addM(metBase, offset);
-      const arr = addM(dep, MET_JOURNEY);
+      const arrBaker = addM(dep, 55);
+      const arrEuston = addM(dep, MET_JOURNEY);
       return {
         scheduledDep: fmt(dep),
         expectedDep: fmt(dep),
-        arrivalBakerSt: fmt(arr),
+        arrivalBakerSt: fmt(arrBaker),
+        arrivalEustonSq: fmt(arrEuston),
         destination: metDests[i],
         towards: metDests[i],
         timeToStation: (leaveInMins + DRIVE_TO_CHALFONT + offset + 2) * 60,
@@ -697,10 +705,10 @@
     let html = `<div class="route-section">
       <div class="route-header">
         <span class="route-label tube">Metropolitan line</span>
-        <span class="route-title-text">Chalfont & Latimer → Baker St</span>
+        <span class="route-title-text">Chalfont & Latimer → Euston Square</span>
         <a class="maps-link" href="${CHALFONT_MAPS}" target="_blank">↗ maps</a>
       </div>
-      <div class="met-note">Met line does not serve Euston. From <strong>Baker Street</strong>, take the Jubilee line to <strong>Euston Square</strong> (+8 min) then walk ~10 min, or take a taxi.</div>`;
+      <div class="met-note">Met line direct to <strong>Euston Square</strong> (~55 min from Chalfont), then a 5 min walk to Euston station. No changes needed.</div>`;
 
     if (lb) {
       html += `<div class="leave-by">
@@ -723,8 +731,8 @@
             <span class="status-chip s-ok">On time</span>
           </div>
           <div class="train-right">
-            <div class="train-arr-label">arr Baker St</div>
-            <div class="train-arr">${d.arrivalBakerSt || '—'}</div>
+            <div class="train-arr-label">arr Euston Square</div>
+            <div class="train-arr">${d.arrivalEustonSq || d.arrivalBakerSt || '—'}</div>
           </div>
         </div>`;
       });
