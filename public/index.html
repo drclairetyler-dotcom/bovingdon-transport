@@ -647,7 +647,7 @@
       `<div class="rec-card"><div class="rec-msg">${msg}</div><span class="rec-tag ${cls}">${tag}</span></div>`;
   }
 
-  // ── Leave-by helper ──────────────────────────────────────────
+  // -- Leave-by helper
   function leaveByFor(drive, deps, label) {
     if (!deps || !deps.length) return '';
     const now = new Date();
@@ -655,15 +655,23 @@
       const [h,m] = d.scheduledDep.split(':').map(Number);
       const dep = new Date(); dep.setHours(h,m,0,0);
       const lb  = new Date(dep.getTime()-drive*60000);
-      if (lb > now) return `<div class="leave-by">
-        <div><div class="lb-label">${label}</div><div class="lb-time">${p(lb.getHours())}:${p(lb.getMinutes())}</div></div>
-        <div class="lb-note">to catch<br>${d.scheduledDep} departure</div>
-      </div>`;
+      if (lb.getTime() > now.getTime() - 8*60000) {
+        const past = lb.getTime() < now.getTime();
+        const note = past ? 'leave now for<br>'+d.scheduledDep+' departure' : 'to catch<br>'+d.scheduledDep+' departure';
+        return '<div class="leave-by"><div><div class="lb-label">'+label+'</div><div class="lb-time">'+p(lb.getHours())+':'+p(lb.getMinutes())+'</div></div><div class="lb-note">'+note+'</div></div>';
+      }
     }
     return '';
   }
 
-  // ── Status chip ──────────────────────────────────────────────
+  function calcArrival(depStr, journeyMins) {
+    if (!depStr) return '—';
+    const [h,m] = depStr.split(':').map(Number);
+    const dep = new Date(); dep.setHours(h,m,0,0);
+    return fmt(addM(dep, journeyMins));
+  }
+
+  // -- Status chip
   function chip(dep) {
     if (dep.cancelled) return `<span class="chip chip-cancel">Cancelled</span>`;
     if (dep.status && dep.status!=='ON TIME' && dep.status!=='on-time') {
@@ -732,7 +740,7 @@
           </div>
           <div class="tr-right">
             <div class="tr-arr-label">arr Euston Square</div>
-            <div class="tr-arr">${d.arrivalEustonSq||'—'}</div>
+            <div class="tr-arr">${d.arrivalEustonSq || calcArrival(d.scheduledDep, MET_JOURNEY)}</div>
           </div>
         </div>`;
       });
@@ -801,7 +809,7 @@
           </div>
           <div class="tr-right">
             <div class="tr-arr-label">arr Chalfont</div>
-            <div class="tr-arr">${d.arrivalChalfont||'—'}</div>
+            <div class="tr-arr">${d.arrivalChalfont || calcArrival(d.scheduledDep, MET_JOURNEY)}</div>
           </div>
         </div>`;
       });
