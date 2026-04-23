@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0a0a0f" />
+  <title>Trains · Bovingdon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #13131a;
+      --surface2: #1c1c26;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.12);
+      --text: #f0efe8;
+      --muted: rgba(240,239,232,0.45);
+      --dim: rgba(240,239,232,0.25);
+      --rail: #4a90d9;
+      --rail-bg: rgba(74,144,217,0.1);
+      --rail-border: rgba(74,144,217,0.25);
+      --tube: #9b4dca;
+      --tube-bg: rgba(155,77,202,0.1);
+      --tube-border: rgba(155,77,202,0.25);
+      --green: #4caf84;
+      --green-bg: rgba(76,175,132,0.1);
+      --amber: #e8a94a;
+      --amber-bg: rgba(232,169,74,0.1);
+      --red: #e05555;
+      --red-bg: rgba(224,85,85,0.1);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --mono: 'DM Mono', monospace;
+      --serif: 'Instrument Serif', serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--mono);
+      font-weight: 300;
+      min-height: 100dvh;
+      overscroll-behavior: none;
+    }
+
+    body {
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 0 16px 40px;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .origin {
+      font-family: var(--serif);
+      font-style: italic;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .destination {
+      font-family: var(--serif);
+      font-size: 28px;
+      line-height: 1;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+
+    .arrow {
+      font-size: 18px;
+      color: var(--muted);
+      margin: 0 6px;
+    }
+
+    .header-meta {
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .clock {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+
+    .refresh-btn {
+      background: none;
+      border: 1px solid var(--border2);
+      color: var(--muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      padding: 5px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .refresh-btn:hover { border-color: var(--border2); color: var(--text); }
+    .refresh-btn:active { transform: scale(0.97); }
+
+    .spin { display: inline-block; }
+    .spinning { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Leave in control ── */
+    .leave-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .leave-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .leave-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 400;
+      padding: 5px 13px;
+      border-radius: 20px;
+      border: 1px solid var(--border2);
+      background: none;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+    }
+
+    .pill:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+    .pill.active { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 500; }
+
+    /* ── Disruption banner ── */
+    .disruption-banner {
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      margin-bottom: 16px;
+      font-size: 12px;
+      line-height: 1.5;
+      letter-spacing: 0.02em;
+    }
+
+    .disruption-banner.show { display: flex; }
+    .disruption-banner.warn { background: var(--amber-bg); border: 1px solid rgba(232,169,74,0.2); color: var(--amber); }
+    .disruption-banner.bad { background: var(--red-bg); border: 1px solid rgba(224,85,85,0.2); color: var(--red); }
+    .disruption-banner.ok { background: var(--green-bg); border: 1px solid rgba(76,175,132,0.2); color: var(--green); }
+
+    .disruption-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Recommendation strip ── */
+    .rec-strip {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .rec-text {
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .rec-text strong { font-weight: 500; }
+
+    .rec-badge {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+      flex-shrink: 0;
+    }
+
+    .rec-badge.rail { background: var(--rail-bg); color: var(--rail); border: 1px solid var(--rail-border); }
+    .rec-badge.tube { background: var(--tube-bg); color: var(--tube); border: 1px solid var(--tube-border); }
+
+    /* ── Route section ── */
+    .route-section {
+      margin-bottom: 20px;
+    }
+
+    .route-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .route-label {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .route-label.rail { background: var(--rail-bg); color: var(--rail); border: 1px solid var(--rail-border); }
+    .route-label.tube { background: var(--tube-bg); color: var(--tube); border: 1px solid var(--tube-border); }
+
+    .route-title-text {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+    }
+
+    .maps-link {
+      margin-left: auto;
+      font-size: 11px;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: 20px;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .maps-link:hover { color: var(--text); border-color: var(--border2); }
+
+    /* ── Leave by callout ── */
+    .leave-by {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .leave-by-label { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    .leave-by-time { font-size: 20px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+    .leave-by-note { font-size: 11px; color: var(--muted); margin-top: 1px; text-align: right; }
+
+    /* ── Train rows ── */
+    .train-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-top: 1px solid var(--border);
+      gap: 12px;
+    }
+
+    .train-row:last-child { border-bottom: 1px solid var(--border); }
+
+    .train-left {}
+
+    .train-dep {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .train-dep-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+      letter-spacing: 0.03em;
+    }
+
+    .train-right { text-align: right; flex-shrink: 0; }
+
+    .train-arr {
+      font-size: 13px;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .train-arr-label { font-size: 10px; color: var(--dim); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
+
+    .status-chip {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      margin-top: 4px;
+    }
+
+    .s-ok { background: var(--green-bg); color: var(--green); }
+    .s-late { background: var(--amber-bg); color: var(--amber); }
+    .s-cancel { background: var(--red-bg); color: var(--red); }
+
+    /* ── Met line note ── */
+    .met-note {
+      background: var(--surface2);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      letter-spacing: 0.02em;
+    }
+
+    .met-note strong { color: var(--text); font-weight: 500; }
+
+    /* ── Error / loading ── */
+    .state-msg {
+      text-align: center;
+      padding: 32px 0;
+      color: var(--muted);
+      font-size: 13px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Demo mode notice ── */
+    .demo-notice {
+      background: var(--surface2);
+      border: 1px dashed var(--border2);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 11px;
+      color: var(--dim);
+      line-height: 1.6;
+      margin-bottom: 20px;
+      letter-spacing: 0.03em;
+    }
+
+    .demo-notice a { color: var(--muted); }
+
+    /* ── Updated stamp ── */
+    .updated {
+      text-align: center;
+      font-size: 11px;
+      color: var(--dim);
+      letter-spacing: 0.06em;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <span class="origin">Bovingdon</span>
+        <span class="arrow">→</span>
+        <span class="destination">London</span>
+      </div>
+      <button class="refresh-btn" id="refresh-btn" onclick="refresh()">
+        <span class="spin" id="spin-icon">↻</span> refresh
+      </button>
+    </div>
+    <div class="header-meta">
+      <span class="clock" id="live-clock"></span>
+    </div>
+  </div>
+
+  <div class="leave-bar">
+    <span class="leave-label">Leave in</span>
+    <div class="leave-pills">
+      <button class="pill active" data-val="0" onclick="setLeave(this)">now</button>
+      <button class="pill" data-val="10" onclick="setLeave(this)">10 min</button>
+      <button class="pill" data-val="20" onclick="setLeave(this)">20 min</button>
+      <button class="pill" data-val="30" onclick="setLeave(this)">30 min</button>
+      <button class="pill" data-val="45" onclick="setLeave(this)">45 min</button>
+    </div>
+  </div>
+
+  <div class="disruption-banner ok show" id="disruption-banner">
+    <span class="disruption-icon">●</span>
+    <span id="disruption-text">Checking service status…</span>
+  </div>
+
+  <div id="demo-notice" class="demo-notice" style="display:none">
+    ⚙ Running in demo mode — API keys not yet set. Times shown are illustrative based on real timetables.
+    See <code>README.md</code> for setup instructions.
+  </div>
+
+  <div id="rec-area"></div>
+  <div id="rail-area"></div>
+  <div id="tube-area"></div>
+
+  <div class="updated" id="updated-stamp"></div>
+</div>
+
+<script>
+  // ── Config ──────────────────────────────────────────────────
+  const DRIVE_TO_HEMEL = 18;   // mins from Bovingdon
+  const DRIVE_TO_CHALFONT = 22; // mins from Bovingdon
+  const RAIL_JOURNEY = 30;     // Hemel → Euston approx
+  const MET_JOURNEY = 55;      // Chalfont → Baker Street approx
+
+  const HEMEL_MAPS = "https://maps.google.com/?q=Hemel+Hempstead+Railway+Station&travelmode=driving";
+  const CHALFONT_MAPS = "https://maps.google.com/?q=Chalfont+%26+Latimer+Underground+Station&travelmode=driving";
+
+  let leaveInMins = 0;
+  let lastData = null;
+  let clockInterval;
+
+  // ── Clock ────────────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('live-clock').textContent =
+      `${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]} · ${h}:${m}:${s}`;
+  }
+
+  // ── Leave in selector ────────────────────────────────────────
+  function setLeave(btn) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    leaveInMins = parseInt(btn.dataset.val);
+    if (lastData) render(lastData);
+  }
+
+  // ── Fetch / refresh ──────────────────────────────────────────
+  async function refresh() {
+    document.getElementById('spin-icon').classList.add('spinning');
+    document.getElementById('refresh-btn').disabled = true;
+    try {
+      const res = await fetch('/api/trains');
+      if (!res.ok) throw new Error('API error');
+      const data = await res.json();
+      lastData = data;
+      document.getElementById('demo-notice').style.display = 'none';
+      render(data);
+    } catch(e) {
+      // Fall back to demo data
+      document.getElementById('demo-notice').style.display = 'block';
+      lastData = makeDemoData();
+      render(lastData);
+    } finally {
+      document.getElementById('spin-icon').classList.remove('spinning');
+      document.getElementById('refresh-btn').disabled = false;
+    }
+  }
+
+  // ── Demo / fallback data ─────────────────────────────────────
+  function makeDemoData() {
+    const now = new Date();
+    function addM(d, m) { return new Date(d.getTime() + m*60000); }
+    function fmt(d) { return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+
+    // Next rail departures from Hemel (roughly every 15-20 mins)
+    const railBase = addM(now, leaveInMins + DRIVE_TO_HEMEL + 3);
+    const railDeps = [0, 17, 32, 47, 64].map((offset, i) => {
+      const dep = addM(railBase, offset);
+      const late = i === 2;
+      const arr = addM(dep, RAIL_JOURNEY + (late ? 8 : 0));
+      return {
+        scheduledDep: fmt(addM(railBase, offset)),
+        expectedDep: late ? fmt(addM(dep, 8)) : fmt(dep),
+        scheduledArr: fmt(addM(dep, RAIL_JOURNEY)),
+        expectedArr: fmt(arr),
+        platform: i % 2 === 0 ? '3' : '1',
+        operator: i % 3 === 0 ? 'London NW' : 'Avanti',
+        status: late ? 'LATE' : 'ON TIME',
+        cancelled: false,
+        destination: 'London Euston',
+      };
+    });
+
+    // Next Met line departures from Chalfont (every 12 mins)
+    const metBase = addM(now, leaveInMins + DRIVE_TO_CHALFONT + 2);
+    const metDests = ['Baker Street','Aldgate','Baker Street','Aldgate','Baker Street'];
+    const metDeps = [0, 12, 24, 36, 48].map((offset, i) => {
+      const dep = addM(metBase, offset);
+      const arr = addM(dep, MET_JOURNEY);
+      return {
+        scheduledDep: fmt(dep),
+        expectedDep: fmt(dep),
+        arrivalBakerSt: fmt(arr),
+        destination: metDests[i],
+        towards: metDests[i],
+        timeToStation: (leaveInMins + DRIVE_TO_CHALFONT + offset + 2) * 60,
+      };
+    });
+
+    return {
+      rail: { station: 'Hemel Hempstead', departures: railDeps },
+      tube: { station: 'Chalfont & Latimer', departures: metDeps },
+      railStatus: null,
+      tubeStatus: { severity: 'Good Service', reason: null },
+      fetchedAt: now.toISOString(),
+      _demo: true,
+    };
+  }
+
+  // ── Render ───────────────────────────────────────────────────
+  function render(data) {
+    renderStatus(data);
+    renderRec(data);
+    renderRail(data);
+    renderTube(data);
+
+    const ft = new Date(data.fetchedAt);
+    const fh = String(ft.getHours()).padStart(2,'0');
+    const fm = String(ft.getMinutes()).padStart(2,'0');
+    document.getElementById('updated-stamp').textContent = `last updated ${fh}:${fm}`;
+  }
+
+  function pad2(n){ return String(n).padStart(2,'0'); }
+
+  function leaveByTime(driveTime) {
+    // When user needs to leave to catch the NEXT train
+    if (!lastData) return null;
+    const deps = lastData.rail?.departures || [];
+    if (!deps.length) return null;
+    const now = new Date();
+    for (const d of deps) {
+      const [h,m] = d.scheduledDep.split(':').map(Number);
+      const depTime = new Date(); depTime.setHours(h,m,0,0);
+      const mustLeaveBy = new Date(depTime.getTime() - driveTime * 60000);
+      if (mustLeaveBy > now) {
+        return { time: `${pad2(mustLeaveBy.getHours())}:${pad2(mustLeaveBy.getMinutes())}`, train: d.scheduledDep };
+      }
+    }
+    return null;
+  }
+
+  function renderStatus(data) {
+    const banner = document.getElementById('disruption-banner');
+    const text = document.getElementById('disruption-text');
+
+    const railOk = !data.railStatus || data.railStatus.length === 0;
+    const tubeOk = !data.tubeStatus || data.tubeStatus.severity === 'Good Service';
+
+    if (!railOk && !tubeOk) {
+      banner.className = 'disruption-banner bad show';
+      text.textContent = 'Disruption on both routes — check before travelling.';
+    } else if (!railOk) {
+      banner.className = 'disruption-banner warn show';
+      const msg = Array.isArray(data.railStatus) ? data.railStatus.join(' ') : 'National Rail disruption reported.';
+      text.textContent = `Rail: ${msg}`;
+    } else if (!tubeOk) {
+      banner.className = 'disruption-banner warn show';
+      const reason = data.tubeStatus.reason ? ` — ${data.tubeStatus.reason}` : '';
+      text.textContent = `Met line: ${data.tubeStatus.severity}${reason}`;
+    } else {
+      banner.className = 'disruption-banner ok show';
+      text.textContent = 'Good service on both routes.';
+    }
+  }
+
+  function calcTotalTime(driveTime, firstDep, journeyTime, isDemoNow) {
+    const now = new Date();
+    if (!firstDep) return '—';
+    const [h,m] = firstDep.split(':').map(Number);
+    const dep = new Date(); dep.setHours(h,m,0,0);
+    const waitMins = Math.max(0, Math.round((dep - now) / 60000));
+    return driveTime + waitMins + journeyTime;
+  }
+
+  function renderRec(data) {
+    const railFirst = data.rail?.departures?.[0];
+    const tubeFirst = data.tube?.departures?.[0];
+    const railTotal = calcTotalTime(DRIVE_TO_HEMEL, railFirst?.scheduledDep, RAIL_JOURNEY);
+    const tubeTotal = calcTotalTime(DRIVE_TO_CHALFONT, tubeFirst?.scheduledDep, MET_JOURNEY);
+
+    const railBetter = (typeof railTotal === 'number' && typeof tubeTotal === 'number')
+      ? railTotal <= tubeTotal + 10  // rail wins or within 10 min (tube doesn't serve Euston directly)
+      : true;
+
+    const el = document.getElementById('rec-area');
+    const badgeCls = railBetter ? 'rail' : 'tube';
+    const badgeText = railBetter ? 'National Rail' : 'Met line';
+    const recMsg = railBetter
+      ? `<strong>Take the train from Hemel.</strong> Direct to Euston in ~${RAIL_JOURNEY} min. ${typeof railTotal === 'number' ? `~${railTotal} min door to door.` : ''}`
+      : `<strong>Met line is faster</strong> to central London this departure, but note: no direct service to Euston — change at Baker Street.`;
+
+    el.innerHTML = `<div class="rec-strip">
+      <div class="rec-text">${recMsg}</div>
+      <span class="rec-badge ${badgeCls}">${badgeText}</span>
+    </div>`;
+  }
+
+  function statusChip(dep) {
+    if (dep.cancelled) return '<span class="status-chip s-cancel">Cancelled</span>';
+    if (dep.status && dep.status !== 'ON TIME' && dep.status !== 'on-time') {
+      const exp = dep.expectedDep;
+      const sched = dep.scheduledDep;
+      if (exp && exp !== sched) return `<span class="status-chip s-late">Exp ${exp}</span>`;
+      return `<span class="status-chip s-late">${dep.status}</span>`;
+    }
+    return '<span class="status-chip s-ok">On time</span>';
+  }
+
+  function renderRail(data) {
+    const el = document.getElementById('rail-area');
+    const deps = data.rail?.departures;
+
+    const lb = leaveByTime(DRIVE_TO_HEMEL);
+
+    let html = `<div class="route-section">
+      <div class="route-header">
+        <span class="route-label rail">National Rail</span>
+        <span class="route-title-text">Hemel Hempstead → Euston</span>
+        <a class="maps-link" href="${HEMEL_MAPS}" target="_blank">↗ maps</a>
+      </div>`;
+
+    if (lb) {
+      html += `<div class="leave-by">
+        <div>
+          <div class="leave-by-label">Leave Bovingdon by</div>
+          <div class="leave-by-time">${lb.time}</div>
+        </div>
+        <div class="leave-by-note">to catch ${lb.train} from Hemel</div>
+      </div>`;
+    }
+
+    if (!deps || !deps.length) {
+      html += `<div class="state-msg">No departures found</div>`;
+    } else {
+      deps.slice(0,5).forEach(d => {
+        const arrTime = d.expectedArr || d.scheduledArr || '—';
+        html += `<div class="train-row">
+          <div class="train-left">
+            <div class="train-dep">${d.scheduledDep}</div>
+            <div class="train-dep-note">plt ${d.platform || '—'} · ${d.operator || ''}</div>
+            ${statusChip(d)}
+          </div>
+          <div class="train-right">
+            <div class="train-arr-label">arrives Euston</div>
+            <div class="train-arr">${arrTime}</div>
+          </div>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+    el.innerHTML = html;
+  }
+
+  function renderTube(data) {
+    const el = document.getElementById('tube-area');
+    const deps = data.tube?.departures;
+
+    const lb = leaveByTime(DRIVE_TO_CHALFONT);
+
+    let html = `<div class="route-section">
+      <div class="route-header">
+        <span class="route-label tube">Metropolitan line</span>
+        <span class="route-title-text">Chalfont & Latimer → Baker St</span>
+        <a class="maps-link" href="${CHALFONT_MAPS}" target="_blank">↗ maps</a>
+      </div>
+      <div class="met-note">Met line does not serve Euston. From <strong>Baker Street</strong>, take the Jubilee line to <strong>Euston Square</strong> (+8 min) then walk ~10 min, or take a taxi.</div>`;
+
+    if (lb) {
+      html += `<div class="leave-by">
+        <div>
+          <div class="leave-by-label">Leave Bovingdon by</div>
+          <div class="leave-by-time">${lb.time}</div>
+        </div>
+        <div class="leave-by-note">to catch next from Chalfont</div>
+      </div>`;
+    }
+
+    if (!deps || !deps.length) {
+      html += `<div class="state-msg">No departures found</div>`;
+    } else {
+      deps.slice(0,5).forEach(d => {
+        html += `<div class="train-row">
+          <div class="train-left">
+            <div class="train-dep">${d.scheduledDep}</div>
+            <div class="train-dep-note">towards ${d.towards || d.destination}</div>
+            <span class="status-chip s-ok">On time</span>
+          </div>
+          <div class="train-right">
+            <div class="train-arr-label">arr Baker St</div>
+            <div class="train-arr">${d.arrivalBakerSt || '—'}</div>
+          </div>
+        </div>`;
+      });
+    }
+    html += `</div>`;
+    el.innerHTML = html;
+  }
+
+  // ── Init ─────────────────────────────────────────────────────
+  updateClock();
+  clockInterval = setInterval(updateClock, 1000);
+  refresh();
+
+  // Auto-refresh every 60 seconds
+  setInterval(refresh, 60000);
+</script>
+</body>
+</html>

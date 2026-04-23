@@ -1,0 +1,11 @@
+{
+  "name": "bovingdon-transport",
+  "version": "1.0.0",
+  "description": "Train checker: Bovingdon to London",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}
